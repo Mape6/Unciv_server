@@ -8,10 +8,7 @@ port = 8080
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        if self.path.endswith('favicon.ico'):
-            self.send_response(404)
-            self.end_headers()
-        elif self.path.endswith('isalive'):
+        if self.path.endswith('isalive'):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
@@ -38,6 +35,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
     def do_PUT(self):
         path = self.translate_path(self.path)
         if path.endswith('/'):
