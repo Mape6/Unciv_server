@@ -5,6 +5,7 @@ import re
 
 port = 8080
 
+
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.endswith('favicon.ico'):
@@ -15,7 +16,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write("true".encode())
-        elif re.search(r'\/files\/[a-zA-Z0-9-_]{1,}$', self.path):
+        elif re.search(r'\/files\/[a-zA-Z0-9-_]+$', self.path):
             path = self.translate_path(self.path)
             if path.endswith('/'):
                 self.send_response(405, "Method Not Allowed")
@@ -30,8 +31,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(file_content.encode())
                 except FileNotFoundError:
-                        self.send_response(404, "File not found")
-                        self.wfile.write("File not found\n".encode())
+                    self.send_response(404, "File not found")
+                    self.wfile.write("File not found\n".encode())
                 
                 # return http.server.SimpleHTTPRequestHandler.do_GET(self)
         else:
@@ -46,12 +47,14 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             try:
                 os.makedirs(os.path.dirname(path))
-            except FileExistsError: pass
+            except FileExistsError:
+                pass
             length = int(self.headers['Content-Length'])
             with open(path, 'wb') as f:
                 f.write(self.rfile.read(length))
             self.send_response(201, "Created")
             self.end_headers()
+
 
 Handler = MyHttpRequestHandler
 
