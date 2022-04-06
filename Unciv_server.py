@@ -52,20 +52,25 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
     def do_PUT(self):
-        # Check for preview file name and write content to file
+        # Check if path is not too long
         if len(self.path) <= 128:
+            # Check path for preview or game file name
             if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
                 path = self.translate_path(self.path)
+                # Check if Content-Length is not too long
+                # TODO: Check if the value is big enough
                 if int(self.headers['Content-Length']) <= 1048576:
                     content_length = int(self.headers['Content-Length'])
                     self.write_file_content(path, content_length)
+                # If Content-Length is too log -> send 401
                 else:
                     self.send_response(401)
                     self.end_headers()
-            # Everything else is not allowed
+            # If path does not have the right file names -> send 401
             else:
                 self.send_response(401)
                 self.end_headers()
+        # If path length is too long -> send 401
         else:
             self.send_response(401)
             self.end_headers()
