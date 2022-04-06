@@ -62,7 +62,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if int(self.headers['Content-Length']) <= 1048576:
                     content_length = int(self.headers['Content-Length'])
                     self.write_file_content(path, content_length)
-                # If Content-Length is too log -> send 401
+                # If Content-Length is too long -> send 401
                 else:
                     self.send_response(401)
                     self.end_headers()
