@@ -69,6 +69,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     
     def do_DELETE(self):
         # TODO: write method for deleting a game file
+        pass
 
 
 Handler = MyHttpRequestHandler
