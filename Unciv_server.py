@@ -73,7 +73,12 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
 Handler = MyHttpRequestHandler
-
-with socketserver.TCPServer(("", port), Handler) as httpd:
-    print(f'HTTP server serving at port {port}')
-    httpd.serve_forever()
+try:
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        print(f'HTTP server serving at port {port}')
+        httpd.serve_forever()
+except OSError as error:
+    if error.errno == 10048:
+        print(f'ERROR: Port {port} is already used by any other service!')
+    else:
+        print(error)
