@@ -4,7 +4,7 @@ import os
 import re
 
 port = 8080
-uuid_regex = r'[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}'
+uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -53,16 +53,19 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         # Check for preview file name and write content to file
-        if re.search(f'\/files\/{uuid_regex}_Preview$', self.path):
-            path = self.translate_path(self.path)
-            content_length = int(self.headers['Content-Length'])
-            self.write_file_content(path, content_length)
-        # Check for game file name and write content to file
-        elif re.search(f'\/files\/{uuid_regex}$', self.path):
-            path = self.translate_path(self.path)
-            content_length = int(self.headers['Content-Length'])
-            self.write_file_content(path, content_length)
-        # Everything else is not allowed
+        if len(self.path) <= 128:
+            if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
+                path = self.translate_path(self.path)
+                if int(self.headers['Content-Length']) <= 1048576:
+                    content_length = int(self.headers['Content-Length'])
+                    self.write_file_content(path, content_length)
+                else:
+                    self.send_response(401)
+                    self.end_headers()
+            # Everything else is not allowed
+            else:
+                self.send_response(401)
+                self.end_headers()
         else:
             self.send_response(401)
             self.end_headers()
@@ -73,6 +76,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
 Handler = MyHttpRequestHandler
+
 try:
     with socketserver.TCPServer(("", port), Handler) as httpd:
         print(f'HTTP server serving at port {port}')
