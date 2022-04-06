@@ -17,7 +17,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(file_content.encode())
         except FileNotFoundError:
-            self.send_response(404, "File not found")
+            self.send_response(404)
             self.end_headers()
             self.wfile.write("File not found".encode())
     
@@ -28,7 +28,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             pass
         with open(path, 'wb') as f:
             f.write(self.rfile.read(content_length))
-        self.send_response(201, "Created")
+        self.send_response(201)
         self.end_headers()
 
     def do_GET(self):
