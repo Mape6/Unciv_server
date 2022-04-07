@@ -1,9 +1,27 @@
+#!/usr/bin/env python3
+
 import http.server
 import socketserver
 import os
 import re
+import argparse
 
-port = 8080
+parser = argparse.ArgumentParser(description='This is a simple HTTP webserver for Unciv')
+
+parser.add_argument('-v', '--verbose',
+                    action='store_true',
+                    help='Verbose output'
+                    )
+parser.add_argument('-p', '--port',
+                    action='store',
+                    default='8080',
+                    type=int,
+                    help='Specifies the port on which the server should listen'
+                    )
+
+args = parser.parse_args()
+
+port = args.port
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
 
