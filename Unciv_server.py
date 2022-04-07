@@ -5,23 +5,33 @@ import socketserver
 import os
 import re
 import argparse
+import logging
+from http import HTTPStatus
+
 
 parser = argparse.ArgumentParser(description='This is a simple HTTP webserver for Unciv')
 
-parser.add_argument('-v', '--verbose',
-                    action='store_true',
-                    help='enables verbose output'
-                    )
 parser.add_argument('-p', '--port',
                     action='store',
                     default='8080',
                     type=int,
                     help='specifies the port on which the server should listen (default: %(default)s)'
                     )
+parser.add_argument('-v', '--verbose',
+                    action='store_true',
+                    help='enables verbose output'
+                    )
 
 args = parser.parse_args()
+#args = parser.parse_args(['-v'])
 
 port = args.port
+if args.verbose:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+else:
+    logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
 
@@ -30,12 +40,20 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         try:
             with open(path, 'r') as save_file:
                 file_content = save_file.read()
-                self.send_response(200)
+                http_status = 200
+                logging.info(f'Client: {self.address_string()}, Requested: "{self.requestline}" HTTP_status_code: {http_status}')
+                self.send_response_only(http_status)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 self.wfile.write(file_content.encode())
         except FileNotFoundError:
-            self.send_response(404)
+            http_status = HTTPStatus.NOT_FOUND
+            if self.headers['X-Forwarded-For']:
+                client_ip = self.headers['X-Forwarded-For']
+                logging.warning(f'Client: {client_ip}, Requested: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            else:
+                logging.warning(f'Client: {self.address_string()}, Requested: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
             self.end_headers()
             self.wfile.write("File not found".encode())
     
@@ -46,7 +64,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             pass
         with open(path, 'wb') as f:
             f.write(self.rfile.read(content_length))
-        self.send_response(201)
+        self.send_response_only(201)
         self.end_headers()
 
     def do_GET(self):
