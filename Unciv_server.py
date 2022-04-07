@@ -10,13 +10,13 @@ parser = argparse.ArgumentParser(description='This is a simple HTTP webserver fo
 
 parser.add_argument('-v', '--verbose',
                     action='store_true',
-                    help='Verbose output'
+                    help='enables verbose output'
                     )
 parser.add_argument('-p', '--port',
                     action='store',
                     default='8080',
                     type=int,
-                    help='Specifies the port on which the server should listen'
+                    help='specifies the port on which the server should listen (default: %(default)s)'
                     )
 
 args = parser.parse_args()
