@@ -12,7 +12,7 @@ Use [git](https://git-scm.com) to download the Unciv_server
 ```bash
 mkdir Unciv_server
 cd Unciv_server
-git pull https://github.com/Mape6/Unciv_server.git
+git clone https://github.com/Mape6/Unciv_server.git
 ```
 
 ## Usage
