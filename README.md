@@ -28,6 +28,9 @@ optional arguments:
   -v, --verbose         change logging level to INFO (default: WARNING)
 ```
 
+This webserver does not support TLS for secured HTTPS connections. I suggest to use a reverse proxy in front of this webserver to take care of the certificate and termination of the TLS sessions.
+
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
