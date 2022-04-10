@@ -83,7 +83,6 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response_only(http_status)
             self.end_headers()
 
-
     def delete_file(self, path, client_ip):
         if os.path.exists(path):
             os.remove(path)
@@ -96,7 +95,6 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
-
 
     def do_GET(self):
         # Check if X-Forwarded-For is present in headers -> use client IP out of it
