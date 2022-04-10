@@ -32,6 +32,8 @@ else:
 
 port = args.port
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+max_path_length = 128
+max_content_length = 1048576  # (1 MB is really enough)
 
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -62,6 +64,20 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
         self.send_response_only(http_status)
         self.end_headers()
+
+    def delete_file(self, path, client_ip):
+        if os.path.exists(path):
+            os.remove(path)
+            http_status = HTTPStatus.OK
+            logging.info(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
+            self.end_headers()
+        else:
+            http_status = HTTPStatus.NOT_FOUND
+            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
+            self.end_headers()
+
 
     def do_GET(self):
         # Check if X-Forwarded-For is present in headers -> use client IP out of it
@@ -99,14 +115,14 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             client_ip = self.address_string()
 
         # Check if path is not too long
-        if len(self.path) <= 128:
+        if len(self.path) <= max_path_length:
 
             # Check path for preview or game file name
             if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
                 path = self.translate_path(self.path)
 
-                # Check if Content-Length is not too long (1 MB is really enough)
-                if int(self.headers['Content-Length']) <= 1048576:
+                # Check if Content-Length is not too big
+                if int(self.headers['Content-Length']) <= max_content_length:
                     content_length = int(self.headers['Content-Length'])
                     self.write_file_content(path, content_length, client_ip)
 
@@ -131,8 +147,33 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
     
     def do_DELETE(self):
-        # TODO: write method for deleting a game file
-        pass
+        # Check if X-Forwarded-For is present in headers -> use client IP out of it
+        if self.headers['X-Forwarded-For']:
+            client_ip = self.headers['X-Forwarded-For']
+        else:
+            client_ip = self.address_string()
+
+        # Check if path is not too long
+        if len(self.path) <= max_path_length:
+
+            # Check path for preview or game file name
+            if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
+                path = self.translate_path(self.path)
+                self.delete_file(path, client_ip)
+
+            # If path does not have the right file names -> send 403 FORBIDDEN
+            else:
+                http_status = HTTPStatus.FORBIDDEN
+                logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                self.send_response_only(http_status)
+                self.end_headers()
+
+        # If path length is too long -> send 400 BAD REQUEST
+        else:
+            http_status = HTTPStatus.BAD_REQUEST
+            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
+            self.end_headers()
 
 
 Handler = MyHttpRequestHandler
