@@ -19,7 +19,7 @@ parser.add_argument('-p', '--port',
                     )
 parser.add_argument('-v', '--verbose',
                     action='store_true',
-                    help='enables verbose output'
+                    help='change logging level to INFO (default: WARNING)'
                     )
 
 args = parser.parse_args()
