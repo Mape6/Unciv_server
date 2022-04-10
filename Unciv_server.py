@@ -54,16 +54,35 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
     
     def write_file_content(self, path, content_length, client_ip):
+        # If the dir does not exist -> create it
+        if not os.path.exists(os.path.dirname(path)):
+            try:
+                os.makedirs(os.path.dirname(path))
+                logging.info(f'Path {os.path.dirname(path)} created.')
+            # If dir could not be created -> log the exception and send 500 Internal Server Error
+            except Exception as e:
+                logging.critical(f'Path {os.path.dirname(path)} could not be created. Exception: {e}')
+                http_status = HTTPStatus.INTERNAL_SERVER_ERROR
+                logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                self.send_response_only(http_status)
+                self.end_headers()
+
+        # Write content to file
         try:
-            os.makedirs(os.path.dirname(path))
-        except FileExistsError:
-            pass
-        with open(path, 'wb') as f:
-            f.write(self.rfile.read(content_length))
-        http_status = HTTPStatus.CREATED
-        logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
-        self.send_response_only(http_status)
-        self.end_headers()
+            with open(path, 'wb') as f:
+                f.write(self.rfile.read(content_length))
+            http_status = HTTPStatus.CREATED
+            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
+            self.end_headers()
+        # If file could not be created -> log the exception and send 500 Internal Server Error
+        except Exception as e:
+            logging.critical(f'File {path} could not be created. Exception: {e}')
+            http_status = HTTPStatus.INTERNAL_SERVER_ERROR
+            logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            self.send_response_only(http_status)
+            self.end_headers()
+
 
     def delete_file(self, path, client_ip):
         if os.path.exists(path):
