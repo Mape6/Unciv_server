@@ -15,21 +15,17 @@ parser.add_argument('-p', '--port',
                     action='store',
                     default='80',
                     type=int,
-                    help='specifies the port on which the server should listen (default: %(default)s)'
+                    help='Specifies the port on which the server should listen (default: %(default)s)'
                     )
-parser.add_argument('-v', '--verbose',
-                    action='store_true',
-                    help='change logging level to INFO (default: WARNING)'
+parser.add_argument('-l', '--log-level',
+                    default='WARNING',
+                    choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'],
+                    help='Change logging level (default: %(default)s)'
                     )
 
 args = parser.parse_args()
 
-if args.verbose:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.info('Verbosity enabled')
-else:
-    logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
-
+logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 port = args.port
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 game_files_regex = re.compile(rf'^\/files\/({uuid_regex}_Preview$|{uuid_regex}$)')
