@@ -25,10 +25,16 @@ parser.add_argument('-l', '--log-level',
 
 args = parser.parse_args()
 
+if 1 <= args.port <= 65535:
+    port = args.port
+else:
+    parser.error('Port needs to be an integer between 1 and 65535')
+
 logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - %(message)s')
-port = args.port
+
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 game_files_regex = re.compile(rf'^\/files\/{uuid_regex}(_Preview|_Lock|$)$')
+
 max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
 
