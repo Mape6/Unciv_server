@@ -32,6 +32,7 @@ else:
 
 port = args.port
 uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+game_files_regex = re.compile(rf'^\/files\/({uuid_regex}_Preview$|{uuid_regex}$)')
 max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
 
@@ -103,8 +104,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             client_ip = self.address_string()
 
-        # Check path for preview or game file name and send content to client
-        if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
+        # Check path for game file names -> send file content
+        if game_files_regex.search(self.path):
             path = self.translate_path(self.path)
             self.send_file_content(path, client_ip)
 
@@ -134,8 +135,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check if path is not too long
         if len(self.path) <= max_path_length:
 
-            # Check path for preview or game file name
-            if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
+            # Check path for game file names
+            if game_files_regex.search(self.path):
                 path = self.translate_path(self.path)
 
                 # Check if Content-Length is not too big
@@ -173,8 +174,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check if path is not too long
         if len(self.path) <= max_path_length:
 
-            # Check path for preview or game file name
-            if re.search(f'\/files\/{uuid_regex}_Preview$', self.path) or re.search(f'\/files\/{uuid_regex}$', self.path):
+            # Check path for game file names
+            if game_files_regex.search(self.path):
                 path = self.translate_path(self.path)
                 self.delete_file(path, client_ip)
 
