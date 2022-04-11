@@ -18,14 +18,15 @@ git clone https://github.com/Mape6/Unciv_server.git
 ## Usage
 
 ```
-usage: Unciv_server.py [-h] [-p PORT] [-v]
+usage: Unciv_server.py [-h] [-p PORT] [-l {CRITICAL,ERROR,WARNING,INFO,DEBUG}]
 
 This is a simple HTTP webserver for Unciv
 
 optional arguments:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  specifies the port on which the server should listen (default: 80)
-  -v, --verbose         change logging level to INFO (default: WARNING)
+  -p PORT, --port PORT  Specifies the port on which the server should listen (default: 80)
+  -l {CRITICAL,ERROR,WARNING,INFO,DEBUG}, --log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}
+                        Change logging level (default: WARNING)
 ```
 
 This webserver does not support TLS for secured HTTPS connections. I suggest to use a reverse proxy in front of this webserver to take care of the certificate and termination of the TLS sessions.
