@@ -196,7 +196,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         if len(self.path) <= max_path_length:
 
             # Check path for game file names
-            if game_files_regex.search(self.path):
+            if regexc_all_game_files.search(self.path):
                 path = self.translate_path(self.path)
                 self.delete_file(path, client_ip)
 
