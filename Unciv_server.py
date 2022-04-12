@@ -32,8 +32,16 @@ else:
 
 logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
-uuid_regex = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-game_files_regex = re.compile(rf'^\/files\/{uuid_regex}(_Preview|_Lock|$)$')
+regex_uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+regex_path = '\/files\/'
+
+suffix_preview_file = '_Preview'
+suffix_lock_file = '_Lock'
+
+regexc_main_game_file = re.compile(rf'^{regex_path}{regex_uuid}$')
+regexc_preview_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_preview_file}$')
+regexc_lock_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_lock_file}$')
+regexc_all_game_files = re.compile(rf'^{regex_path}{regex_uuid}({suffix_preview_file}|{suffix_lock_file}|$)$')
 
 max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
@@ -107,7 +115,7 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             client_ip = self.address_string()
 
         # Check path for game file names -> send file content
-        if game_files_regex.search(self.path):
+        if regexc_all_game_files.search(self.path):
             path = self.translate_path(self.path)
             self.send_file_content(path, client_ip)
 
@@ -137,28 +145,39 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check if path is not too long
         if len(self.path) <= max_path_length:
 
-            # Check path for game file names
-            if game_files_regex.search(self.path):
-                path = self.translate_path(self.path)
+            # Check if Content-Length is not too big
+            if int(self.headers['Content-Length']) <= max_content_length:
+                content_length = int(self.headers['Content-Length'])
 
-                # Check if Content-Length is not too big
-                if int(self.headers['Content-Length']) <= max_content_length:
-                    content_length = int(self.headers['Content-Length'])
+                # Check path for preview file name
+                if regexc_preview_file.search(self.path):
+                    path = self.translate_path(self.path)
                     self.write_file_content(path, content_length, client_ip)
 
-                # If Content-Length is too long -> send 400 BAD REQUEST
+                # Check path for main game file name
+                elif regexc_main_game_file.search(self.path):
+                    path = self.translate_path(self.path)
+                    self.write_file_content(path, content_length, client_ip)
+
+                # Check path for lock file name
+                elif regexc_lock_file.search(self.path):
+                    path = self.translate_path(self.path)
+                    self.write_file_content(path, content_length, client_ip)
+
+                # If path does not have the right file names -> send 403 FORBIDDEN
                 else:
-                    http_status = HTTPStatus.BAD_REQUEST
+                    http_status = HTTPStatus.FORBIDDEN
                     logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                     self.send_response_only(http_status)
                     self.end_headers()
 
-            # If path does not have the right file names -> send 403 FORBIDDEN
+            # If Content-Length is too long -> send 400 BAD REQUEST
             else:
-                http_status = HTTPStatus.FORBIDDEN
+                http_status = HTTPStatus.BAD_REQUEST
                 logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
+
         # If path length is too long -> send 400 BAD REQUEST
         else:
             http_status = HTTPStatus.BAD_REQUEST
