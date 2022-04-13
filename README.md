@@ -35,7 +35,8 @@ To start an HTTPS server on 443:
 ./Unciv_server.py -p 443 -s
 ```
 
-This webserver does not support TLS for secured HTTPS connections. I suggest to use a reverse proxy in front of this webserver to take care of the certificate and termination of the TLS sessions.
+The SSL support is very rudimentary and the certificate is self-signed. Don't make the server directly reachable from the internet.
+I strongly recommend to use a reverse proxy in front of this webserver to take care of the certificate and termination of the SSL sessions.
 
 
 ## Contributing
