@@ -5,6 +5,7 @@ You need to have the following folder structure:
 \someFolder\Unciv-Windows64
 \someFolder\Unciv_server
 ```
+Command to import the self-signed cert that ships with the Unciv_server
 ```
 cd Unciv-Windows64
 .\jre\bin\keytool -import -alias Unciv-server-cert -file "..\Unciv_server\localhost.crt" -keystore ".\jre\lib\security\cacerts" -noprompt -storepass changeit
