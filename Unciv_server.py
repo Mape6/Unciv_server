@@ -28,7 +28,7 @@ parser.add_argument('-s', '--ssl',
                     help='Starts a HTTPS server instead of HTTP'
                     )
 
-args = parser.parse_args(['-p', '443', '-s'])
+args = parser.parse_args()
 
 if 1 <= args.port <= 65535:
     port = args.port
