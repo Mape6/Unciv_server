@@ -2,6 +2,7 @@
 
 import http.server
 import socketserver
+import ssl
 import os
 import re
 import argparse
@@ -22,8 +23,12 @@ parser.add_argument('-l', '--log-level',
                     choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'],
                     help='Change logging level (default: %(default)s)'
                     )
+parser.add_argument('-s', '--ssl',
+                    action='store_true',
+                    help='Starts a HTTPS server instead of HTTP'
+                    )
 
-args = parser.parse_args()
+args = parser.parse_args(['-p', '443', '-s'])
 
 if 1 <= args.port <= 65535:
     port = args.port
@@ -217,12 +222,29 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 Handler = MyHttpRequestHandler
 
-try:
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f'HTTP server serving at port {port}')
-        httpd.serve_forever()
-except OSError as error:
-    if error.errno == 10048:
-        logging.error(f'Port {port} is already used by any other service!')
-    else:
-        print(error)
+# If ssl is not set -> start HTTP server
+if not args.ssl:
+    try:
+        with socketserver.TCPServer(("", port), Handler) as httpd:
+            print(f'HTTP server serving at port {port}')
+            httpd.serve_forever()
+    except OSError as error:
+        if error.errno == 10048:
+            logging.error(f'Port {port} is already used by any other service!')
+        else:
+            print(error)
+# Else ssl is set -> start HTTPS server
+else:
+    try:
+        context = ssl.create_default_context()
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain('localhost.crt', 'localhost.key')
+        with socketserver.TCPServer(("", port), Handler) as httpsd:
+            httpsd.socket = context.wrap_socket(httpsd.socket)
+            print(f'HTTPS server serving at port {port}')
+            httpsd.serve_forever()
+    except OSError as error:
+        if error.errno == 10048:
+            logging.error(f'Port {port} is already used by any other service!')
+        else:
+            print(error)
