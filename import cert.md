@@ -17,4 +17,6 @@ Tbd
 Tbd
 
 ## Android
-Not possible
+Not possible, currently.
+
+I tested the connection with Android 12 and Unciv 4.0.6. The app crashes immediately...
