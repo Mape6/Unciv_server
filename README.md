@@ -38,6 +38,7 @@ To start an HTTPS server on 443:
 The SSL support is very rudimentary and the certificate is self-signed. Don't make the server directly reachable from the internet.
 I strongly recommend to use a reverse proxy in front of this webserver to take care of the certificate and termination of the SSL sessions.
 
+I tested the connection with Android 12 and Unciv 4.0.6. The app crashes immediately...
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
