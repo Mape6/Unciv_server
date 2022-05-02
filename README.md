@@ -10,9 +10,8 @@ The server was tested with Python 3.9 and 3.10.
 Use [git](https://git-scm.com) to download the Unciv_server
 
 ```bash
-mkdir Unciv_server
-cd Unciv_server
 git clone https://github.com/Mape6/Unciv_server.git
+cd Unciv_server
 ```
 
 ## Usage
