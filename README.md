@@ -17,13 +17,16 @@ cd Unciv_server
 ## Usage
 
 ```
-usage: Unciv_server.py [-h] [-p PORT] [-l {CRITICAL,ERROR,WARNING,INFO,DEBUG}]
+usage: Unciv_server.py [-h] [-p PORT] [-g]
+                       [-l {CRITICAL,ERROR,WARNING,INFO,DEBUG}]
 
 This is a simple HTTP webserver for Unciv
 
 optional arguments:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  Specifies the port on which the server should listen (default: 80)
+  -p PORT, --port PORT  Specifies the port on which the server should listen
+                        (default: 80)
+  -g, --game-logfiles   Writes separate logfiles for each game
   -l {CRITICAL,ERROR,WARNING,INFO,DEBUG}, --log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}
                         Change logging level (default: WARNING)
 ```

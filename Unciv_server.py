@@ -17,13 +17,17 @@ parser.add_argument('-p', '--port',
                     type=int,
                     help='Specifies the port on which the server should listen (default: %(default)s)'
                     )
+parser.add_argument('-g', '--game-logfiles',
+                    action='store_true',
+                    help='Writes separate logfiles for each game'
+                    )
 parser.add_argument('-l', '--log-level',
                     default='WARNING',
                     choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'],
                     help='Change logging level (default: %(default)s)'
                     )
 
-args = parser.parse_args()
+args = parser.parse_args(['-h'])
 
 if 1 <= args.port <= 65535:
     port = args.port
@@ -37,6 +41,7 @@ regex_path = '\/files\/'
 
 suffix_preview_file = '_Preview'
 suffix_lock_file = '_Lock'
+suffixes_list = [suffix_preview_file, suffix_lock_file]
 
 regexc_main_game_file = re.compile(rf'^{regex_path}{regex_uuid}$')
 regexc_preview_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_preview_file}$')
@@ -46,18 +51,49 @@ regexc_all_game_files = re.compile(rf'^{regex_path}{regex_uuid}({suffix_preview_
 max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
 
+log_files_folder = 'logs'
+
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def write_to_log_file(self, path, log_entry):
+        # Remove any suffix from filename to get only UUID
+        for suffix in suffixes_list: path = path.strip(suffix)
+        # Get only the filename
+        log_file = os.path.basename(path)
+        # Join log path and log filename
+        log_file_path = os.path.join(log_files_folder, log_file)
+        # Check if log path exists
+        if not os.path.exists(log_files_folder):
+            try:
+                os.makedirs(log_files_folder)
+                logging.info(f'Folder {log_files_folder} created.')
+            # If dir could not be created -> log the exception and send 500 Internal Server Error
+            except Exception as e:
+                logging.critical(f'Folder {log_files_folder} could not be created. Exception: {e}')
+
+        # Write log_entry to file
+        try:
+            with open(log_file_path, 'a') as f:
+                f.write(log_entry)
+            logging.info(f'Logfile {log_file_path} updated successfully.')
+        # If file could not be updated -> log the exception
+        except Exception as e:
+            logging.critical(f'Logfile {log_file_path} could not be updated. Exception: {e}')
+
     def send_file_content(self, path, client_ip):
         try:
             with open(path, 'r') as save_file:
                 file_content = save_file.read()
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(file_content.encode())
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
+
         except FileNotFoundError:
             http_status = HTTPStatus.NOT_FOUND
             logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
@@ -83,9 +119,12 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             with open(path, 'wb') as f:
                 f.write(self.rfile.read(content_length))
             http_status = HTTPStatus.CREATED
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.end_headers()
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
         # If file could not be created -> log the exception and send 500 Internal Server Error
         except Exception as e:
             logging.critical(f'File {path} could not be created. Exception: {e}')
@@ -98,9 +137,12 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         if os.path.exists(path):
             os.remove(path)
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.end_headers()
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
         else:
             http_status = HTTPStatus.NOT_FOUND
             logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
