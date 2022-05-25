@@ -6,8 +6,8 @@ import os
 import re
 import argparse
 import logging
+from datetime import datetime
 from http import HTTPStatus
-
 
 parser = argparse.ArgumentParser(description='This is a simple HTTP webserver for Unciv')
 
@@ -52,12 +52,16 @@ max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
 
 log_files_folder = 'logs'
+log_time_format = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     def write_to_log_file(self, path, log_entry):
+        # Create timestamp and add it as prefix to log_entry
+        log_entry = datetime.now().strftime(log_time_format) + ' - ' + log_entry
         # Remove any suffix from filename to get only UUID
-        for suffix in suffixes_list: path = path.strip(suffix)
+        for suffix in suffixes_list:
+            path = path.strip(suffix)
         # Get only the filename
         log_file = os.path.basename(path)
         # Join log path and log filename
@@ -96,10 +100,11 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         except FileNotFoundError:
             http_status = HTTPStatus.NOT_FOUND
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
-    
+
     def write_file_content(self, path, content_length, client_ip):
         # If the dir does not exist -> create it
         if not os.path.exists(os.path.dirname(path)):
@@ -110,7 +115,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logging.critical(f'Path {os.path.dirname(path)} could not be created. Exception: {e}')
                 http_status = HTTPStatus.INTERNAL_SERVER_ERROR
-                logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.critical(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
@@ -129,7 +135,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             logging.critical(f'File {path} could not be created. Exception: {e}')
             http_status = HTTPStatus.INTERNAL_SERVER_ERROR
-            logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.critical(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -145,7 +152,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.write_to_log_file(path, f'{log_entry}\n')
         else:
             http_status = HTTPStatus.NOT_FOUND
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -164,7 +172,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check for connection check and response with 'true'
         elif self.path.endswith('isalive'):
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.info(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
@@ -173,7 +182,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Everything else is not allowed
         else:
             http_status = HTTPStatus.FORBIDDEN
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -209,24 +219,27 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 # If path does not have the right file names -> send 403 FORBIDDEN
                 else:
                     http_status = HTTPStatus.FORBIDDEN
-                    logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                    logging.warning(
+                        f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                     self.send_response_only(http_status)
                     self.end_headers()
 
             # If Content-Length is too long -> send 400 BAD REQUEST
             else:
                 http_status = HTTPStatus.BAD_REQUEST
-                logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.warning(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
         # If path length is too long -> send 400 BAD REQUEST
         else:
             http_status = HTTPStatus.BAD_REQUEST
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
-    
+
     def do_DELETE(self):
         # Check if X-Forwarded-For is present in headers -> use client IP out of it
         if self.headers['X-Forwarded-For']:
@@ -245,14 +258,16 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             # If path does not have the right file names -> send 403 FORBIDDEN
             else:
                 http_status = HTTPStatus.FORBIDDEN
-                logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.warning(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
         # If path length is too long -> send 400 BAD REQUEST
         else:
             http_status = HTTPStatus.BAD_REQUEST
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
