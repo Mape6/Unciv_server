@@ -30,7 +30,7 @@ parser.add_argument('-l', '--log-level',
                     help='Change logging level (default: %(default)s)'
                     )
 
-args = parser.parse_args(['-p 81'], )
+args = parser.parse_args()
 
 if 1 <= args.port <= 65535:
     port = args.port
