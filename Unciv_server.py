@@ -6,8 +6,11 @@ import os
 import re
 import argparse
 import logging
+import socket
+import urllib.request
 from datetime import datetime
 from http import HTTPStatus
+
 
 parser = argparse.ArgumentParser(description='This is a simple HTTP webserver for Unciv')
 
@@ -27,7 +30,7 @@ parser.add_argument('-l', '--log-level',
                     help='Change logging level (default: %(default)s)'
                     )
 
-args = parser.parse_args()
+args = parser.parse_args(['-p 81'], )
 
 if 1 <= args.port <= 65535:
     port = args.port
@@ -272,14 +275,54 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
 
+def get_private_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't have to be reachable
+        s.connect(('10.254.254.254', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
+
+
+def get_public_ip():
+    ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
+    return ip
+
+
 Handler = MyHttpRequestHandler
 
 try:
     with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f'HTTP server serving at port {port}')
+        private_ip = get_private_ip()
+        
+        try: 
+            public_ip = get_public_ip()
+            public_url = f'http://{public_ip}'
+        except:
+            pass
+        
+        private_url = f'http://{private_ip}'
+        
+        if port != 80:
+            private_url += f':{port}'
+            if public_url:
+                public_url += f':{port}'
+
+        print(f'Try the following URLs in Unciv to connect with this server.')
+        print(f'From LAN network: {private_url}')
+        if public_url:
+            print(f'From internet: {public_url}')
+
         httpd.serve_forever()
 except OSError as error:
     if error.errno == 10048:
         logging.error(f'Port {port} is already used by any other service!')
     else:
         print(error)
+except BaseException as e:
+    print(e)
