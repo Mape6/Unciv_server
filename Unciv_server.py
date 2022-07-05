@@ -7,6 +7,9 @@ import os
 import re
 import argparse
 import logging
+import socket
+import urllib.request
+from datetime import datetime
 from http import HTTPStatus
 
 
@@ -17,6 +20,10 @@ parser.add_argument('-p', '--port',
                     default='80',
                     type=int,
                     help='Specifies the port on which the server should listen (default: %(default)s)'
+                    )
+parser.add_argument('-g', '--game-logfiles',
+                    action='store_true',
+                    help='Writes separate logfiles for each game'
                     )
 parser.add_argument('-l', '--log-level',
                     default='WARNING',
@@ -42,6 +49,7 @@ regex_path = '\/files\/'
 
 suffix_preview_file = '_Preview'
 suffix_lock_file = '_Lock'
+suffixes_list = [suffix_preview_file, suffix_lock_file]
 
 regexc_main_game_file = re.compile(rf'^{regex_path}{regex_uuid}$')
 regexc_preview_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_preview_file}$')
@@ -51,24 +59,60 @@ regexc_all_game_files = re.compile(rf'^{regex_path}{regex_uuid}({suffix_preview_
 max_path_length = 128
 max_content_length = 1048576  # (1 MB is really enough)
 
+log_files_folder = 'logs'
+log_time_format = '%Y-%m-%d %H:%M:%S.%f'
+
 
 class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def write_to_log_file(self, path, log_entry):
+        # Create timestamp and add it as prefix to log_entry
+        log_entry = datetime.now().strftime(log_time_format) + ' - ' + log_entry
+        # Remove any suffix from filename to get only UUID
+        for suffix in suffixes_list:
+            path = path.strip(suffix)
+        # Get only the filename
+        log_file = os.path.basename(path)
+        # Join log path and log filename
+        log_file_path = os.path.join(log_files_folder, log_file)
+        # Check if log path exists
+        if not os.path.exists(log_files_folder):
+            try:
+                os.makedirs(log_files_folder)
+                logging.info(f'Folder {log_files_folder} created.')
+            # If dir could not be created -> log the exception and send 500 Internal Server Error
+            except Exception as e:
+                logging.critical(f'Folder {log_files_folder} could not be created. Exception: {e}')
+
+        # Write log_entry to file
+        try:
+            with open(log_file_path, 'a') as f:
+                f.write(log_entry)
+            logging.info(f'Logfile {log_file_path} updated successfully.')
+        # If file could not be updated -> log the exception
+        except Exception as e:
+            logging.critical(f'Logfile {log_file_path} could not be updated. Exception: {e}')
+
     def send_file_content(self, path, client_ip):
         try:
             with open(path, 'r') as save_file:
                 file_content = save_file.read()
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(file_content.encode())
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
+
         except FileNotFoundError:
             http_status = HTTPStatus.NOT_FOUND
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
-    
+
     def write_file_content(self, path, content_length, client_ip):
         # If the dir does not exist -> create it
         if not os.path.exists(os.path.dirname(path)):
@@ -79,7 +123,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logging.critical(f'Path {os.path.dirname(path)} could not be created. Exception: {e}')
                 http_status = HTTPStatus.INTERNAL_SERVER_ERROR
-                logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.critical(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
@@ -88,14 +133,18 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             with open(path, 'wb') as f:
                 f.write(self.rfile.read(content_length))
             http_status = HTTPStatus.CREATED
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.end_headers()
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
         # If file could not be created -> log the exception and send 500 Internal Server Error
         except Exception as e:
             logging.critical(f'File {path} could not be created. Exception: {e}')
             http_status = HTTPStatus.INTERNAL_SERVER_ERROR
-            logging.critical(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.critical(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -103,12 +152,16 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         if os.path.exists(path):
             os.remove(path)
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            log_entry = f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}'
+            logging.info(log_entry)
             self.send_response_only(http_status)
             self.end_headers()
+            if args.game_logfiles:
+                self.write_to_log_file(path, f'{log_entry}\n')
         else:
             http_status = HTTPStatus.NOT_FOUND
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}", HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -127,7 +180,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check for connection check and response with 'true'
         elif self.path.endswith('isalive'):
             http_status = HTTPStatus.OK
-            logging.info(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.info(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
@@ -136,7 +190,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Everything else is not allowed
         else:
             http_status = HTTPStatus.FORBIDDEN
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
 
@@ -172,24 +227,27 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
                 # If path does not have the right file names -> send 403 FORBIDDEN
                 else:
                     http_status = HTTPStatus.FORBIDDEN
-                    logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                    logging.warning(
+                        f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                     self.send_response_only(http_status)
                     self.end_headers()
 
             # If Content-Length is too long -> send 400 BAD REQUEST
             else:
                 http_status = HTTPStatus.BAD_REQUEST
-                logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.warning(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
         # If path length is too long -> send 400 BAD REQUEST
         else:
             http_status = HTTPStatus.BAD_REQUEST
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
-    
+
     def do_DELETE(self):
         # Check if X-Forwarded-For is present in headers -> use client IP out of it
         if self.headers['X-Forwarded-For']:
@@ -208,16 +266,37 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
             # If path does not have the right file names -> send 403 FORBIDDEN
             else:
                 http_status = HTTPStatus.FORBIDDEN
-                logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+                logging.warning(
+                    f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
                 self.send_response_only(http_status)
                 self.end_headers()
 
         # If path length is too long -> send 400 BAD REQUEST
         else:
             http_status = HTTPStatus.BAD_REQUEST
-            logging.warning(f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase}')
             self.send_response_only(http_status)
             self.end_headers()
+
+
+def get_private_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't have to be reachable
+        s.connect(('10.254.254.254', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
+
+
+def get_public_ip():
+    ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
+    return ip
 
 
 Handler = MyHttpRequestHandler
@@ -226,7 +305,26 @@ Handler = MyHttpRequestHandler
 if not args.ssl:
     try:
         with socketserver.TCPServer(("", port), Handler) as httpd:
-            print(f'HTTP server serving at port {port}')
+            private_ip = get_private_ip()
+        
+            try: 
+                public_ip = get_public_ip()
+                public_url = f'http://{public_ip}'
+            except:
+                public_url = None
+            
+            private_url = f'http://{private_ip}'
+            
+            if port != 80:
+                private_url += f':{port}'
+                if public_url:
+                    public_url += f':{port}'
+
+            print(f'Try the following URLs in Unciv to connect with this server.')
+            print(f'From LAN network: {private_url}')
+            if public_url:
+                print(f'From internet: {public_url}')
+            
             httpd.serve_forever()
     except OSError as error:
         if error.errno == 10048:
