@@ -304,7 +304,7 @@ try:
             public_ip = get_public_ip()
             public_url = f'http://{public_ip}'
         except:
-            pass
+            public_url = None
         
         private_url = f'http://{private_ip}'
         
