@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='This is a simple HTTP webserver fo
 
 parser.add_argument('-p', '--port',
                     action='store',
-                    default='80',
+                    #default='80',
                     type=int,
                     help='Specifies the port on which the server should listen (default: %(default)s)'
                     )
@@ -37,10 +37,18 @@ parser.add_argument('-s', '--ssl',
 
 args = parser.parse_args()
 
-if 1 <= args.port <= 65535:
-    port = args.port
+if not args.port and not args.ssl:
+    port = 80
+elif not args.port and args.ssl:
+    port = 443
+elif args.port:
+    if 1 <= args.port <= 65535:
+        port = args.port
+    else:
+        parser.error('Port needs to be an integer between 1 and 65535')
 else:
-    parser.error('Port needs to be an integer between 1 and 65535')
+    print('Something went wrong with the port!')
+    quit(1)
 
 logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -293,10 +301,30 @@ def get_private_ip():
         s.close()
     return ip
 
-
 def get_public_ip():
     ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
     return ip
+
+def print_urls(protocol):
+    private_ip = get_private_ip()
+
+    try: 
+        public_ip = get_public_ip()
+        public_url = f'{protocol}://{public_ip}'
+    except:
+        public_url = None
+    
+    private_url = f'{protocol}://{private_ip}'
+    
+    if port != 80:
+        private_url += f':{port}'
+        if public_url:
+            public_url += f':{port}'
+
+    print(f'Try the following URLs in Unciv to connect with this server.')
+    print(f'From LAN network: {private_url}')
+    if public_url:
+        print(f'From internet: {public_url}')
 
 
 Handler = MyHttpRequestHandler
@@ -305,26 +333,8 @@ Handler = MyHttpRequestHandler
 if not args.ssl:
     try:
         with socketserver.TCPServer(("", port), Handler) as httpd:
-            private_ip = get_private_ip()
-        
-            try: 
-                public_ip = get_public_ip()
-                public_url = f'http://{public_ip}'
-            except:
-                public_url = None
-            
-            private_url = f'http://{private_ip}'
-            
-            if port != 80:
-                private_url += f':{port}'
-                if public_url:
-                    public_url += f':{port}'
-
-            print(f'Try the following URLs in Unciv to connect with this server.')
-            print(f'From LAN network: {private_url}')
-            if public_url:
-                print(f'From internet: {public_url}')
-            
+            protocol = 'http'
+            print_urls(protocol)
             httpd.serve_forever()
     except OSError as error:
         if error.errno == 10048:
@@ -339,7 +349,8 @@ else:
         context.load_cert_chain('localhost.crt', 'localhost.key')
         with socketserver.TCPServer(("", port), Handler) as httpsd:
             httpsd.socket = context.wrap_socket(httpsd.socket)
-            print(f'HTTPS server serving at port {port}')
+            protocol = 'https'
+            print_urls(protocol)
             httpsd.serve_forever()
     except OSError as error:
         if error.errno == 10048:
