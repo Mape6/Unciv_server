@@ -5,7 +5,7 @@ It's a simple webserver for Unciv that uses the Python built in http.server modu
 ## Installation
 
 Make sure you have Python3 installed.
-The server was tested with Python 3.9 and 3.10.
+The server was tested with Python 3.7\3.8\3.9 and 3.10; Of course, we recommend Python 3.9 and 3.10
 
 Use [git](https://git-scm.com) to download the Unciv_server
 
