@@ -34,6 +34,14 @@ parser.add_argument('-s', '--ssl',
                     action='store_true',
                     help='Starts a HTTPS server instead of HTTP'
                     )
+parser.add_argument('--pub-cert',
+                    action='store',
+                    help='Set name of public certificate file'
+                    )
+parser.add_argument('--prv-key',
+                    action='store',
+                    help='Set name of private key file'
+                    )
 
 args = parser.parse_args()
 
@@ -41,6 +49,8 @@ if not args.port and not args.ssl:
     port = 80
 elif not args.port and args.ssl:
     port = 443
+    pub_cert = args.pub_cert
+    prv_key = args.prv_key
 elif args.port:
     if 1 <= args.port <= 65535:
         port = args.port
@@ -346,7 +356,7 @@ else:
     try:
         context = ssl.create_default_context()
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain('localhost.crt', 'localhost.key')
+        context.load_cert_chain(pub_cert, prv_key)
         with socketserver.TCPServer(("", port), Handler) as httpsd:
             httpsd.socket = context.wrap_socket(httpsd.socket)
             protocol = 'https'
