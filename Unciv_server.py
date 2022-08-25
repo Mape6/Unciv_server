@@ -52,7 +52,7 @@ regexc_lock_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_lock_file}$')
 regexc_all_game_files = re.compile(rf'^{regex_path}{regex_uuid}({suffix_preview_file}|{suffix_lock_file}|$)$')
 
 max_path_length = 128
-max_content_length = 1048576  # (1 MB is really enough)
+max_content_length = 5242880  # (5 MB is really enough)
 
 log_files_folder = 'logs'
 log_time_format = '%Y-%m-%d %H:%M:%S.%f'
