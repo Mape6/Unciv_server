@@ -42,4 +42,4 @@ cd Unciv_server
 
 
 ## 相关许可
-此项目 is 得到了 [MPL-2.0](https://github.com/Mape6/Unciv_server/blob/main/LICENSE) 的许可批准.
+此项目得到了 [MPL-2.0](https://github.com/Mape6/Unciv_server/blob/main/LICENSE) 的许可批准.
