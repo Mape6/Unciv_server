@@ -4,7 +4,7 @@
 
 ## 安装
 
-1，请确保你的 Python3 已安装.
+1，请确保你已安装 Python3 .
 2，这个Unciv服务端可以使用python 3.7\3.8\3.9 以及 3.10; 当然, 我们推荐 Python 3.9 和 3.10
 
 使用 [git](https://git-scm.com) 来下载 服务端 Unciv_server
