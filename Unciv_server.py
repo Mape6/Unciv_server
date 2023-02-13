@@ -41,6 +41,7 @@ logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - 
 
 regex_uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 regex_path = '\/files\/'
+regex_user_agent = 'Unciv\/.*-GNU-Terry-Pratchett'
 
 suffix_preview_file = '_Preview'
 suffix_lock_file = '_Lock'
@@ -50,6 +51,7 @@ regexc_main_game_file = re.compile(rf'^{regex_path}{regex_uuid}$')
 regexc_preview_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_preview_file}$')
 regexc_lock_file = re.compile(rf'^{regex_path}{regex_uuid}{suffix_lock_file}$')
 regexc_all_game_files = re.compile(rf'^{regex_path}{regex_uuid}({suffix_preview_file}|{suffix_lock_file}|$)$')
+regexc_user_agent = re.compile(regex_user_agent)
 
 max_path_length = 128
 max_content_length = 5242880  # (5 MB is really enough)
@@ -167,8 +169,16 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             client_ip = self.address_string()
 
+        # Check if User-Agent is from Unciv in headers -> allow answers, otherwise send 403 FORBIDDEN
+        if not regexc_user_agent.search(self.headers['User-Agent']):
+            http_status = HTTPStatus.FORBIDDEN
+            logging.warning(
+                f'Client: {client_ip}, Request: "{self.requestline}" HTTP_status_code: {http_status} {http_status.phrase} wrong User-Agent {self.headers["User-Agent"]}')
+            self.send_response_only(http_status)
+            self.end_headers()
+
         # Check path for game file names -> send file content
-        if regexc_all_game_files.search(self.path):
+        elif regexc_all_game_files.search(self.path):
             path = self.translate_path(self.path)
             self.send_file_content(path, client_ip)
 
