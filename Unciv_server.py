@@ -40,8 +40,8 @@ else:
 logging.basicConfig(level=args.log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 regex_uuid = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-regex_path = '\/files\/'
-regex_user_agent = 'Unciv\/.*-GNU-Terry-Pratchett'
+regex_path = '/files/'
+regex_user_agent = 'Unciv/.*-GNU-Terry-Pratchett'
 
 suffix_preview_file = '_Preview'
 suffix_lock_file = '_Lock'
